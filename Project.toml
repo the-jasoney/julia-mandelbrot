@@ -1,0 +1,13 @@
+name = ""
+uuid = "fe4d2d23-12e4-4b35-8c34-11b9b5a31fd0"
+authors = ["the-jasoney <jasoney.music@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+
+[extras]
+
+[targets]
+
+[compat]
+julia = "1"
