@@ -8,10 +8,10 @@ using Printf, Luxor, Colors, Images
 
 # CONSTANTS
 
-const w = 3840  # width of the result image
-const h = 2160  # height of the result image
+const w = 7680  # width of the result image
+const h = 4320  # height of the result image
 
-const max_iter = 200  # maximum iterations (the higher, the more accurate)
+const max_iter = 1000  # maximum iterations (the higher, the more accurate)
 
 const zoom = 5  # zoom; controls the width of the plane; must be > 0
 
@@ -29,6 +29,7 @@ max_both_axes = (max(w, h) - 2.47)*zoom
 
 # to reduce number of logs
 const log_2 = log(2)
+
 
 # canvas, draw pixel by pixel
 A = zeros(ARGB32, h, w)
@@ -54,50 +55,52 @@ palette = [
     (106, 52, 3)
 ]
 
-Threads.@threads for x in range(1, w)
-    for y in range(1, h)
-        # calculate c = a + bi
-        a = x / max_both_axes + offset_x
-        b = y / max_both_axes + offset_y
-        c = a + b*im
-        z = 0
-        i = 0
+@time begin
+    Threads.@threads for x in range(1, w)
+        for y in range(1, h)
+            # calculate c = a + bi
+            a = x / max_both_axes + offset_x
+            b = y / max_both_axes + offset_y
+            c = a + b*im
+            z = 0
+            i = 0
 
-        while abs(z) <= 5 && i < max_iter
-            z = z^2 + c
-            i += 1
-        end
+            while abs(z) <= 5 && i < max_iter
+                z = z^2 + c
+                i += 1
+            end
 
-        n = max_iter - i
+            n = max_iter - i
 
-        if i < max_iter
-            # interpolation code
-            log_zn = log(real(z)^2 + imag(z) ^ 2) / 2
-            nu = log(log_zn / log_2) / log_2
-            k = i + 1 - nu
-            rc1 = palette[floor(Int, k) % 16 + 1] ./ 255
-            rc2 = palette[floor(Int, k + 1) % 16 + 1] ./ 255
-            c1 = RGB(rc1[1], rc1[2], rc1[3])
-            c2 = RGB(rc2[1], rc2[2], rc2[3])
+            if i < max_iter
+                # interpolation code
+                log_zn = log(real(z)^2 + imag(z) ^ 2) / 2
+                ν = log(log_zn / log_2) / log_2
+                k = i + 1 - ν
+                rc1 = palette[floor(Int, k) % 16 + 1] ./ 255
+                rc2 = palette[floor(Int, k + 1) % 16 + 1] ./ 255
+                c1 = RGB(rc1[1], rc1[2], rc1[3])
+                c2 = RGB(rc2[1], rc2[2], rc2[3])
 
-            color = range(c1, stop=c2, length=100)[floor(Int, (k % 1) * 100) + 1]
-            A[y, x] = color
-        else
-            # values within the Mandelbrot set
-            A[y, x] = RGB(0, 0, 0)
+                color = range(c1, stop=c2, length=100)[floor(Int, (k % 1) * 100) + 1]
+                A[y, x] = color
+            else
+                # values within the Mandelbrot set
+                A[y, x] = RGB(0, 0, 0)
+            end
         end
     end
-end
 
-# Store as PNG
-@png begin
-    origin()
-    placeimage(A, O - (w/2, h/2))
-end w h "Mandelbrot-" * string(max_iter) * "-" * string(zoom) * "z" * string(offset_x) * "," * string(offset_y) * "-" * string(w) * "x" * string(h) * ".png"
-#=
-    PNG file name format:
-    Mandelbrot-[max iterations]-[zoom]z[offset_im],[offset_re]-[w]x[h].png
-=#
+    # Store as PNG
+    @png begin
+        origin()
+        placeimage(A, O - (w/2, h/2))
+    end w h "Mandelbrot-" * string(max_iter) * "-" * string(zoom) * "z" * string(offset_x) * "," * string(offset_y) * "-" * string(w) * "x" * string(h) * ".png"
+    #=
+        PNG file name format:
+        Mandelbrot-[max iterations]-[zoom]z[offset_im],[offset_re]-[w]x[h].png
+    =#
+end
 
 # preview image
 A
